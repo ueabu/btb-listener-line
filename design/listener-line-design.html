@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Listener Line Design</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --ground:#E9EDF2; --panel:#F8FAFC; --ink:#10151D; --muted:#5A6576; --line:#CBD3DE;
+  --cobalt:#2E48F0; --cobalt-soft:#DDE3FF; --tally:#F2B01E; --tally-ink:#3A2800;
+  --good:#1E8A5A; --good-soft:#D6F0E3; --pass:#8A93A2;
+  --display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --body:"Figtree",ui-sans-serif,system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ground:#0C1017; --panel:#151B25; --ink:#E8EDF5; --muted:#8F9AAD; --line:#27303E;
+  --cobalt:#7C8FFF; --cobalt-soft:#1D2550; --tally:#F5BD3C; --tally-ink:#2A1D00;
+  --good:#4CC98E; --good-soft:#123326; --pass:#6B7485; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --ground:#0C1017; --panel:#151B25; --ink:#E8EDF5; --muted:#8F9AAD; --line:#27303E;
+  --cobalt:#7C8FFF; --cobalt-soft:#1D2550; --tally:#F5BD3C; --tally-ink:#2A1D00;
+  --good:#4CC98E; --good-soft:#123326; --pass:#6B7485; color-scheme:dark;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font:15px/1.5 var(--body);padding-inline:20px;padding-block:32px 64px}
+.wrap{max-width:1180px;margin:0 auto;display:grid;gap:56px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.05}
+.eyebrow{font:500 11px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--cobalt);outline-offset:2px}
+
+/* sheet intro */
+.intro{display:grid;gap:10px;max-width:70ch}
+.intro h1{font-size:clamp(28px,4vw,40px);font-weight:800}
+.intro p{margin:0;color:var(--muted)}
+.section-head{display:flex;flex-wrap:wrap;gap:8px 24px;align-items:baseline;border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:24px}
+.section-head h2{font-size:22px;font-weight:700}
+.section-head p{margin:0;color:var(--muted);flex:1 1 320px}
+
+/* ===== listener page ===== */
+.listener-row{display:grid;grid-template-columns:minmax(0,430px) minmax(0,1fr);gap:40px;align-items:start}
+.notes{display:grid;gap:16px;align-content:start;max-width:52ch}
+.notes div{display:grid;gap:4px}
+.notes b{font-family:var(--display);font-size:16px}
+.notes span{color:var(--muted)}
+.phone{background:var(--panel);border:1px solid var(--line);border-radius:28px;overflow:hidden;box-shadow:0 30px 60px -30px rgb(16 21 29/.35)}
+.lp-top{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--line)}
+.wordmark{font:800 15px/1 var(--display);letter-spacing:-.01em}
+.wordmark i{font-style:normal;color:var(--cobalt)}
+.onair{display:inline-flex;align-items:center;gap:6px;font:500 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;background:var(--tally);color:var(--tally-ink);padding:5px 8px;border-radius:4px}
+.onair::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.lp-body{padding:24px 20px 28px;display:grid;gap:22px}
+.lp-hero{display:grid;gap:10px}
+.lp-hero h3{font-size:34px;font-weight:800;letter-spacing:-.02em}
+.lp-hero p{margin:0;color:var(--muted)}
+.field{display:grid;gap:8px}
+.label{font-weight:600;font-size:14px}
+.hint{font-size:13px;color:var(--muted)}
+.choice{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.choice button{border:1.5px solid var(--line);background:transparent;border-radius:12px;padding:12px;text-align:left;display:grid;gap:2px}
+.choice button b{font-size:14px}
+.choice button span{font-size:12px;color:var(--muted);line-height:1.35}
+.choice button[aria-pressed="true"]{border-color:var(--cobalt);background:var(--cobalt-soft)}
+.dest{display:grid;gap:8px}
+.dest-opt{border:1.5px solid var(--line);background:transparent;border-radius:12px;padding:12px 14px;text-align:left;display:grid;gap:3px}
+.dest-opt>span:last-child{font-size:12.5px;color:var(--muted);line-height:1.4}
+.dest-opt[aria-pressed="true"]{border-color:var(--cobalt);background:var(--cobalt-soft)}
+.dest-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.dest-top b{font-size:14.5px}
+.tag{font:500 10px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:3px 6px}
+.upcoming{display:grid;gap:6px;border-left:2px solid var(--line);padding-left:12px;margin-top:2px}
+.ep-opt{display:flex;gap:10px;align-items:flex-start;font-size:14px}
+.ep-opt input{margin-top:4px;accent-color:var(--cobalt)}
+.ep-opt>span{display:grid}
+.kinds{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.kinds button{border:1.5px solid var(--line);background:transparent;border-radius:999px;padding:8px;font-size:13.5px;font-weight:600}
+.kinds button[aria-pressed="true"]{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.script{background:var(--ground);border-radius:10px;padding:10px 12px;display:grid;gap:4px}
+.script p{margin:0;font-size:14px;font-style:italic}
+.req{font-weight:600;color:var(--ink);font-size:12px}
+.chip.lwit{background:var(--tally);color:var(--tally-ink)}
+.chip.upc{background:var(--cobalt-soft);color:var(--cobalt)}
+.chip.kind{border:1px solid var(--line);color:var(--ink)}
+select,input[type=text],input[type=email]{width:100%;font:inherit;color:var(--ink);background:var(--ground);border:1px solid var(--line);border-radius:10px;padding:11px 12px}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);background:var(--ground);border-radius:10px;padding:3px;gap:3px}
+.tabs button{border:0;background:transparent;border-radius:8px;padding:8px 4px;font-size:13px;font-weight:600;color:var(--muted)}
+.tabs button[aria-selected="true"]{background:var(--panel);color:var(--ink);box-shadow:0 1px 2px rgb(0 0 0/.12)}
+.recorder{border:1px solid var(--line);border-radius:14px;padding:16px;display:grid;gap:12px;background:var(--ground)}
+.rec-meta{display:flex;justify-content:space-between;align-items:center}
+.rec-live{display:inline-flex;align-items:center;gap:8px;font:500 12px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink)}
+.rec-live::before{content:"";width:9px;height:9px;border-radius:50%;background:#E5484D;animation:blink 1.2s steps(2,start) infinite}
+@keyframes blink{50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.rec-live::before{animation:none}}
+.timer{font-size:13px;color:var(--muted)}
+.timer b{color:var(--ink);font-weight:500}
+canvas.wave{width:100%;height:56px;display:block}
+.rec-ctrl{display:flex;gap:10px;align-items:center}
+.btn{border:0;border-radius:999px;padding:11px 18px;font-weight:600;font-size:14px}
+.btn-stop{background:var(--ink);color:var(--panel);display:inline-flex;gap:8px;align-items:center}
+.btn-stop::before{content:"";width:10px;height:10px;border-radius:2px;background:currentColor}
+.btn-ghost{background:transparent;border:1px solid var(--line)}
+.video-note{display:flex;gap:10px;font-size:13px;color:var(--muted);align-items:flex-start}
+.video-note .mono{color:var(--ink)}
+.check{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--muted)}
+.check input{margin-top:3px;accent-color:var(--cobalt)}
+.btn-send{background:var(--cobalt);color:#fff;width:100%;padding:15px;font-size:16px;border-radius:14px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* mini states */
+.states{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;margin-top:24px}
+.state{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;display:grid;gap:10px;align-content:start}
+.state h4{margin:0;font:700 17px/1.2 var(--display)}
+.state p{margin:0;font-size:13px;color:var(--muted)}
+.progress{height:6px;border-radius:3px;background:var(--ground);overflow:hidden}
+.progress i{display:block;height:100%;width:64%;background:var(--cobalt)}
+.file-pill{display:flex;justify-content:space-between;gap:8px;font-size:13px;border:1px dashed var(--line);border-radius:10px;padding:10px 12px}
+
+/* ===== host board ===== */
+.board{background:var(--panel);border:1px solid var(--line);border-radius:18px;overflow:hidden}
+.bd-top{display:flex;flex-wrap:wrap;gap:16px 28px;align-items:center;padding:18px 22px;border-bottom:1px solid var(--line)}
+.bd-top .wordmark{font-size:17px}
+.ep-pick{display:flex;flex-direction:column;gap:3px}
+.ep-pick select{padding:8px 10px;min-width:0;max-width:340px}
+.stats{display:flex;gap:24px;margin-left:auto;flex-wrap:wrap}
+.stat{display:grid;gap:2px}
+.stat b{font:500 20px/1 var(--mono);font-variant-numeric:tabular-nums}
+.bd-main{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr)}
+.inbox{padding:18px 22px;display:grid;gap:14px;align-content:start;border-right:1px solid var(--line)}
+.inbox-head{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center}
+.filters{display:flex;gap:6px;flex-wrap:wrap}
+.filters button{border:1px solid var(--line);background:transparent;border-radius:999px;padding:5px 11px;font-size:12px;font-weight:600;color:var(--muted)}
+.filters button[aria-pressed="true"]{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.drop{border:1.5px dashed var(--line);border-radius:12px;padding:12px 14px;font-size:13px;color:var(--muted);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.drop b{color:var(--ink)}
+.clip{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:6px 14px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
+.play{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--ground);display:grid;place-items:center}
+.play::before{content:"";border-left:11px solid var(--ink);border-top:7px solid transparent;border-bottom:7px solid transparent;margin-left:3px}
+.clip-main{display:grid;gap:4px;min-width:0}
+.clip-line{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.who{font-weight:600}
+.chip{font:500 10.5px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:4px 7px;border-radius:4px}
+.chip.play-air{background:var(--tally);color:var(--tally-ink)}
+.chip.answer{background:var(--cobalt-soft);color:var(--cobalt)}
+.chip.video{border:1px solid var(--line);color:var(--muted)}
+.clip-q{color:var(--muted);font-size:13.5px;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+canvas.mini{width:100%;height:22px;display:block}
+.clip-side{display:grid;justify-items:end;gap:6px}
+.dur{font-size:12px;color:var(--muted)}
+.acts{display:flex;gap:6px}
+.acts button{border:1px solid var(--line);background:transparent;border-radius:8px;padding:5px 9px;font-size:12px;font-weight:600}
+.acts .shortlist[aria-pressed="true"]{background:var(--good-soft);color:var(--good);border-color:transparent}
+.clip.passed{opacity:.5}
+.rundown{padding:18px 22px;display:grid;gap:14px;align-content:start;background:linear-gradient(var(--ground),var(--ground)) padding-box}
+.rd-head{display:grid;gap:8px}
+.rd-head h3{font-size:20px}
+.budget{display:grid;gap:6px}
+.budget-bar{height:8px;border-radius:4px;background:var(--panel);border:1px solid var(--line);overflow:hidden}
+.budget-bar i{display:block;height:100%;width:78%;background:var(--good)}
+.budget-row{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
+ol.slots{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.slot{display:grid;grid-template-columns:auto 58px minmax(0,1fr) auto;gap:10px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.grip{width:10px;height:16px;background:radial-gradient(circle,var(--pass) 1.3px,transparent 1.6px) 0 0/5px 5px;cursor:grab}
+.tc{font-size:12px;color:var(--muted)}
+.slot-t{min-width:0;display:grid}
+.slot-t b{font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.slot-t span{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.slot-note{font-size:12px;color:var(--muted);border-top:1px dashed var(--line);padding-top:10px}
+.btn-export{background:var(--ink);color:var(--panel);border-radius:10px;padding:10px 14px;font-weight:600;font-size:13px;border:0;justify-self:start}
+
+@media (max-width:900px){
+  .listener-row{grid-template-columns:1fr}
+  .bd-main{grid-template-columns:1fr}
+  .inbox{border-right:0;border-bottom:1px solid var(--line)}
+  .stats{margin-left:0}
+}
+@media (max-width:440px){
+  .choice,.two{grid-template-columns:1fr}
+  .clip{grid-template-columns:40px minmax(0,1fr)}
+  .clip-side{grid-column:2;justify-items:start}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="intro">
+  <span class="eyebrow">Design preview · not wired up yet</span>
+  <h1>Listener Line</h1>
+  <p>Two pages. A public page where listeners leave a voice or video question, and a private board where you and Ope review clips and build the segment. Sample names and questions below are placeholders.</p>
+</header>
+
+<!-- ================= LISTENER PAGE ================= -->
+<section>
+  <div class="section-head">
+    <h2>1 · Listener page</h2>
+    <p>Public, hosted on your site. Mobile-first because most people will open it from a podcast app or YouTube description.</p>
+  </div>
+
+  <div class="listener-row">
+    <div class="phone" aria-label="Listener page mockup">
+      <div class="lp-top">
+        <span class="wordmark">Beyond the <i>Build</i></span>
+        <span class="onair">Listener line</span>
+      </div>
+      <div class="lp-body">
+        <div class="lp-hero">
+          <h3>Ask Uma &amp; Ope anything.</h3>
+          <p>Record a question, a thought, or something interesting you want to share. We play the best ones in the listener segment of the next episode.</p>
+        </div>
+
+        <div class="field">
+          <span class="label">Where should it go?</span>
+          <div class="dest">
+            <button class="dest-opt" aria-pressed="true">
+              <span class="dest-top"><b>Last Week in Tech</b><span class="tag">Weekly</span></span>
+              <span>Our weekly segment. Any question or thought about this week in tech.</span>
+            </button>
+            <button class="dest-opt" aria-pressed="false">
+              <span class="dest-top"><b>An upcoming episode</b><span class="tag">Planned</span></span>
+              <span>Pick a topic we're recording soon and we'll play it in that episode.</span>
+            </button>
+          </div>
+          <div class="upcoming" aria-label="Upcoming episodes (shown when picked)">
+            <span class="eyebrow">Upcoming episodes · shown when picked</span>
+            <label class="ep-opt"><input type="radio" name="up" checked> <span><b>The software development life cycle</b><span class="hint">Recording soon</span></span></label>
+            <label class="ep-opt"><input type="radio" name="up"> <span><b>Example topic two</b><span class="hint">Placeholder, you set these</span></span></label>
+          </div>
+        </div>
+
+        <div class="field">
+          <span class="label">What are you sending?</span>
+          <div class="kinds" role="radiogroup">
+            <button aria-pressed="true">Question</button>
+            <button aria-pressed="false">Thought</button>
+            <button aria-pressed="false">Intro</button>
+          </div>
+          <div class="script">
+            <span class="eyebrow">Shown when Intro is picked · read this line:</span>
+            <p>"Hey, I'm Amara from Lagos, and welcome to another episode of Last Week in Tech on Beyond the Build."</p>
+          </div>
+        </div>
+
+        <div class="field">
+          <span class="label">Record it</span>
+          <div class="tabs" role="tablist">
+            <button role="tab" aria-selected="true">Record</button>
+            <button role="tab" aria-selected="false">Audio file</button>
+            <button role="tab" aria-selected="false">Video file</button>
+          </div>
+          <div class="recorder">
+            <div class="rec-meta">
+              <span class="rec-live">Recording</span>
+              <span class="timer mono"><b>00:47</b> / 02:00</span>
+            </div>
+            <canvas class="wave" id="wave" width="760" height="112"></canvas>
+            <div class="rec-ctrl">
+              <button class="btn btn-stop">Stop</button>
+              <button class="btn btn-ghost">Start over</button>
+            </div>
+          </div>
+          <div class="video-note"><span>Sent a video? We keep only the sound. Audio is pulled out on your phone before upload, so the video itself is never sent.</span></div>
+        </div>
+
+        <div class="two">
+          <div class="field"><label class="label" for="nm">Name to credit</label><input type="text" id="nm" placeholder="Amara in Lagos"></div>
+          <div class="field"><label class="label" for="em">Email <span class="hint">(optional)</span></label><input type="email" id="em" placeholder="If we reply"></div>
+        </div>
+
+        <label class="check"><input type="checkbox" checked id="ok"><span>Beyond the Build can play my recording on the podcast and in clips. <b class="req">Required</b></span></label>
+
+        <button class="btn btn-send">Send to the show</button>
+      </div>
+    </div>
+
+    <div class="notes">
+      <span class="eyebrow">How it behaves</span>
+      <div><b>Everything is for air</b><span>No "just answer it" path. Every submission is a clip you can play.</span></div>
+      <div><b>Two destinations</b><span>Last Week in Tech is the default. "An upcoming episode" opens the list of planned topics you set, like the SDLC episode.</span></div>
+      <div><b>Question, thought, or intro</b><span>Picking Intro shows a line they can read to open the segment, with their name filled in.</span></div>
+      <div><b>Record, audio, or video</b><span>Everything is converted to a small MP3 in the browser, capped at 2 minutes. Video only ever sends its audio.</span></div>
+      <div><b>Consent is required</b><span>They can't send until they tick the box.</span></div>
+      <div><b>Where it sends</b><span>One webhook URL at the top of the file. Point it at any service that accepts a file upload (Zapier, Make, a small serverless function) and it drops into a Drive or Dropbox folder.</span></div>
+    </div>
+  </div>
+
+  <div class="states">
+    <div class="state">
+      <span class="eyebrow">State · video picked</span>
+      <div class="file-pill"><span>question-final.mov</span><span class="mono">1:32</span></div>
+      <p>Pulling the audio out of your video…</p>
+      <div class="progress"><i></i></div>
+    </div>
+    <div class="state">
+      <span class="eyebrow">State · ready to send</span>
+      <div class="file-pill"><span>▶ Your recording</span><span class="mono">0:58 · 470 KB</span></div>
+      <p>Listen back before you send. Re-record anytime.</p>
+    </div>
+    <div class="state">
+      <span class="eyebrow">State · sent</span>
+      <h4>Got it, Amara.</h4>
+      <p>We go through questions before each recording. If yours makes the listener segment, you'll hear it in the episode.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= HOST BOARD ================= -->
+<section>
+  <div class="section-head">
+    <h2>2 · Host board</h2>
+    <p>Private Artifact for you and Ope. Drop in the files that arrive, play them, shortlist, and order the segment. Saved and shared between you both.</p>
+  </div>
+
+  <div class="board" aria-label="Host board mockup">
+    <div class="bd-top">
+      <span class="wordmark">Beyond the <i>Build</i> · Listener line</span>
+      <div class="ep-pick">
+        <label class="eyebrow" for="bep">Building segment for</label>
+        <select id="bep"><option>Last Week in Tech · this week</option><option>Upcoming · The software development life cycle</option></select>
+      </div>
+      <div class="stats">
+        <div class="stat"><span class="eyebrow">New</span><b>9</b></div>
+        <div class="stat"><span class="eyebrow">Shortlisted</span><b>4</b></div>
+        <div class="stat"><span class="eyebrow">Segment</span><b>06:14</b></div>
+      </div>
+    </div>
+
+    <div class="bd-main">
+      <div class="inbox">
+        <div class="inbox-head">
+          <div class="filters">
+            <button aria-pressed="true">All</button>
+            <button aria-pressed="false">Questions</button>
+            <button aria-pressed="false">Thoughts</button>
+            <button aria-pressed="false">Intros</button>
+            <button aria-pressed="false">Shortlisted</button>
+          </div>
+        </div>
+        <div class="drop"><span><b>Drop audio or video files here</b> · video is converted to audio</span><span class="mono">mp3 · m4a · wav · mp4 · mov</span></div>
+
+        <div id="clips"></div>
+      </div>
+
+      <aside class="rundown">
+        <div class="rd-head">
+          <span class="eyebrow">Segment rundown</span>
+          <h3>Listener questions</h3>
+          <div class="budget">
+            <div class="budget-bar"><i></i></div>
+            <div class="budget-row"><span class="mono">06:14 of 08:00 target</span><span>4 clips</span></div>
+          </div>
+        </div>
+        <ol class="slots">
+          <li class="slot"><span class="grip" aria-hidden="true"></span><span class="tc mono">00:00</span><span class="slot-t"><b>Amara · segment intro</b><span>0:09 · opens the segment</span></span><span class="chip kind">Intro</span></li>
+          <li class="slot"><span class="grip" aria-hidden="true"></span><span class="tc mono">00:09</span><span class="slot-t"><b>Priya · token budgets per team</b><span>1:12 · Uma responds</span></span><span class="chip kind">Question</span></li>
+          <li class="slot"><span class="grip" aria-hidden="true"></span><span class="tc mono">02:21</span><span class="slot-t"><b>Marcus · caching vs routing first</b><span>0:48 · Ope responds</span></span><span class="chip kind">Question</span></li>
+          <li class="slot"><span class="grip" aria-hidden="true"></span><span class="tc mono">04:09</span><span class="slot-t"><b>Dee · the clipboard hijack story</b><span>0:41 · both react</span></span><span class="chip kind">Thought</span></li>
+        </ol>
+        <p class="slot-note">Timecodes assume about a minute of discussion after each clip. You can change that per slot.</p>
+        <button class="btn-export">Copy rundown for show notes</button>
+      </aside>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<script>
+function rng(seed){return()=>{seed=(seed*1664525+1013904223)%4294967296;return seed/4294967296}}
+function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
+function drawWave(c,seed,played,color,dim){
+  const x=c.getContext('2d'),w=c.width,h=c.height,r=rng(seed),bars=Math.floor(w/7);
+  x.clearRect(0,0,w,h);
+  for(let i=0;i<bars;i++){
+    const env=Math.sin(i/bars*Math.PI)*.5+.5, v=Math.max(.08,(r()*.8+.2)*env*(i/bars<.55?1:.95));
+    const bh=v*h, px=i*7;
+    x.fillStyle=i/bars<played?color:dim;
+    x.beginPath();x.roundRect?x.roundRect(px,(h-bh)/2,4,bh,2):x.rect(px,(h-bh)/2,4,bh);x.fill();
+  }
+}
+const clips=[
+  {who:"Amara",kind:"Intro",dest:"lwit",destLab:"Last Week in Tech",dur:"0:09",q:"“Hey, I'm Amara from Lagos, and welcome to another episode of Last Week in Tech on Beyond the Build.”",sl:true,vid:false},
+  {who:"Priya",kind:"Question",dest:"lwit",destLab:"Last Week in Tech",dur:"1:12",q:"How would you set per-team token budgets without slowing everyone down? We tried a hard cap and people just switched to their personal accounts.",sl:true,vid:false},
+  {who:"Marcus",kind:"Question",dest:"lwit",destLab:"Last Week in Tech",dur:"0:48",q:"Should a small team start with caching or with model routing? Which one pays off first?",sl:true,vid:true},
+  {who:"Dee",kind:"Thought",dest:"lwit",destLab:"Last Week in Tech",dur:"0:41",q:"The clipboard hijack story scared me. We audited every browser extension on our team the next morning.",sl:true,vid:false},
+  {who:"Jordan",kind:"Question",dest:"upc",destLab:"SDLC episode",dur:"1:41",q:"How much of the SDLC at a big company is actually process for its own sake? Which steps would you cut?",sl:false,vid:false},
+  {who:"Lena",kind:"Thought",dest:"lwit",destLab:"Last Week in Tech",dur:"0:27",q:"Quick shout-out to the show, and a take on pre-IPO SPVs.",sl:false,vid:true,passed:true}
+];
+function render(){
+  const host=document.getElementById('clips');
+  host.innerHTML=clips.map((c,i)=>`
+    <div class="clip${c.passed?' passed':''}">
+      <button class="play" aria-label="Play ${c.who}"></button>
+      <div class="clip-main">
+        <div class="clip-line"><span class="who">${c.who}</span><span class="chip kind">${c.kind}</span><span class="chip ${c.dest}">${c.destLab}</span>${c.vid?'<span class="chip video">from video</span>':''}</div>
+        <div class="clip-q">${c.q}</div>
+        <canvas class="mini" data-seed="${i*97+11}" width="520" height="44"></canvas>
+      </div>
+      <div class="clip-side">
+        <span class="dur mono">${c.dur}</span>
+        <div class="acts"><button class="shortlist" aria-pressed="${c.sl}">${c.sl?'Shortlisted':'Shortlist'}</button><button>${c.passed?'Undo':'Pass'}</button></div>
+      </div>
+    </div>`).join('');
+  paint();
+}
+function paint(){
+  drawWave(document.getElementById('wave'),7,.99,css('--cobalt'),css('--line'));
+  document.querySelectorAll('canvas.mini').forEach(c=>drawWave(c,+c.dataset.seed,0,css('--muted'),css('--muted')));
+}
+render();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',paint);
+document.fonts&&document.fonts.ready.then(paint);
+</script>
+</body>
+</html>
