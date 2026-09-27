@@ -50,7 +50,7 @@ To deploy by hand from your machine instead:
 npm run deploy:fly
 ```
 
-The deploy script reads `NEXT_PUBLIC_APPS_SCRIPT_URL` and `NEXT_PUBLIC_HOST_PASSWORD_HASH` from `.env.local` and passes them to the Docker build. They're compiled into the browser bundle, so after changing either one you need to redeploy. For the automatic deploys, also update the matching GitHub secret (`gh secret set NAME`). Fly builds the image remotely, so you don't need Docker locally. The machine stops when idle and starts on the next visit, which adds a second or two to the first load.
+The deploy script reads `NEXT_PUBLIC_APPS_SCRIPT_URL` and `NEXT_PUBLIC_HOST_PASSWORD_HASH` from `.env.local` and passes them to the Docker build. They're compiled into the browser bundle, so after changing either one you need to redeploy. For the automatic deploys, also update the matching GitHub secret (`gh secret set NAME`). Fly builds the image remotely, so you don't need Docker locally. One machine always stays running (`min_machines_running = 1`), so pages load without a cold start.
 
 ## Deploy (Vercel, alternative)
 1. Import the repo in Vercel. The defaults are fine.
