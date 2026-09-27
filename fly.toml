@@ -10,7 +10,7 @@ primary_region = "sjc"  # closest active region to Seattle; Fly retired "sea" fo
   force_https = true
   auto_stop_machines = "stop"
   auto_start_machines = true
-  min_machines_running = 0
+  min_machines_running = 1  # keep one machine always on, so there is no cold start
 
   [[http_service.checks]]
     grace_period = "10s"
