@@ -42,11 +42,15 @@ To use the real backend, follow [`apps-script/SETUP.md`](apps-script/SETUP.md), 
 ## Deploy (Fly.io)
 Live at <https://btb-listener-line.fly.dev> (app `btb-listener-line`, personal org, region `sjc`).
 
+**Merging to `main` deploys automatically.** The [`Deploy to Fly.io`](.github/workflows/fly-deploy.yml) workflow runs lint and tests, then `flyctl deploy`. It uses three repo secrets: `FLY_API_TOKEN` (a deploy token scoped to this app, valid for one year), `NEXT_PUBLIC_APPS_SCRIPT_URL` and `NEXT_PUBLIC_HOST_PASSWORD_HASH`. You can also run it by hand from the Actions tab.
+
+To deploy by hand from your machine instead:
+
 ```bash
 npm run deploy:fly
 ```
 
-The deploy script reads `NEXT_PUBLIC_APPS_SCRIPT_URL` and `NEXT_PUBLIC_HOST_PASSWORD_HASH` from `.env.local` and passes them to the Docker build. They're compiled into the browser bundle, so after changing either one you need to redeploy. Fly builds the image remotely, so you don't need Docker locally. The machine stops when idle and starts on the next visit, which adds a second or two to the first load.
+The deploy script reads `NEXT_PUBLIC_APPS_SCRIPT_URL` and `NEXT_PUBLIC_HOST_PASSWORD_HASH` from `.env.local` and passes them to the Docker build. They're compiled into the browser bundle, so after changing either one you need to redeploy. For the automatic deploys, also update the matching GitHub secret (`gh secret set NAME`). Fly builds the image remotely, so you don't need Docker locally. The machine stops when idle and starts on the next visit, which adds a second or two to the first load.
 
 ## Deploy (Vercel, alternative)
 1. Import the repo in Vercel. The defaults are fine.

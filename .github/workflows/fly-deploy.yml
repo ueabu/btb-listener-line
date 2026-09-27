@@ -1,0 +1,39 @@
+# Deploys to Fly.io on every push to main (i.e. when a PR is merged).
+# Repo secrets: FLY_API_TOKEN, NEXT_PUBLIC_APPS_SCRIPT_URL, NEXT_PUBLIC_HOST_PASSWORD_HASH.
+name: Deploy to Fly.io
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Never run two deploys at once; a newer push waits for the current one.
+concurrency:
+  group: fly-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      # NEXT_PUBLIC_* values are compiled into the browser bundle, so they're passed as build args.
+      - name: Deploy
+        run: >
+          flyctl deploy --remote-only
+          --build-arg "NEXT_PUBLIC_APPS_SCRIPT_URL=${{ secrets.NEXT_PUBLIC_APPS_SCRIPT_URL }}"
+          --build-arg "NEXT_PUBLIC_HOST_PASSWORD_HASH=${{ secrets.NEXT_PUBLIC_HOST_PASSWORD_HASH }}"
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
