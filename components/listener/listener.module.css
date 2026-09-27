@@ -1,0 +1,106 @@
+.page { padding: 24px 16px 64px; display: grid; justify-items: center; }
+.phone {
+  width: 100%; max-width: 640px; background: var(--panel); border: 1px solid var(--line); border-radius: 28px;
+  overflow: hidden; box-shadow: 0 30px 60px -30px rgb(16 21 29 / .35);
+}
+.top { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--line); }
+.onair {
+  display: inline-flex; align-items: center; gap: 6px; font: 500 10px/1 var(--mono); letter-spacing: .14em;
+  text-transform: uppercase; background: var(--tally); color: var(--tally-ink); padding: 5px 8px; border-radius: 4px;
+}
+.onair::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.body { padding: 24px 20px 28px; display: grid; gap: 22px; }
+.hero { display: grid; gap: 10px; }
+.hero h1 { font-size: 34px; font-weight: 800; letter-spacing: -.02em; }
+.hero p { margin: 0; color: var(--muted); }
+
+.field { display: grid; gap: 8px; border: 0; padding: 0; margin: 0; min-width: 0; }
+.label { font-weight: 600; font-size: 14px; padding: 0; }
+/* A legend sits outside the fieldset grid, so the gap doesn't apply to it. */
+legend.label { margin-bottom: 8px; }
+
+.dest { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.dest.single { grid-template-columns: 1fr; }
+.destOpt {
+  border: 1.5px solid var(--line); background: transparent; border-radius: 12px; padding: 12px 14px;
+  text-align: left; display: grid; gap: 3px; align-content: start;
+}
+.destOpt > span:last-child { font-size: 12.5px; color: var(--muted); line-height: 1.4; }
+.destOpt[aria-pressed="true"] { border-color: var(--cobalt); background: var(--cobalt-soft); }
+.destTop { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.destTop b { font-size: 14.5px; }
+.tag { font: 500 10px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 3px 6px; }
+/* Sits in the destination grid, under the "An upcoming episode" card. */
+.upcoming { grid-column: 2; display: grid; gap: 8px; border-left: 2px solid var(--line); padding-left: 12px; margin: 2px 0 0 14px; }
+.epOpt { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; cursor: pointer; }
+.epOpt input { margin-top: 4px; accent-color: var(--cobalt); }
+.epOpt > span { display: grid; gap: 2px; }
+.epDesc { font-size: 13px; color: var(--ink); opacity: .8; line-height: 1.4; }
+
+.kinds { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.kinds button { border: 1.5px solid var(--line); background: transparent; border-radius: 999px; padding: 8px; font-size: 13.5px; font-weight: 600; }
+.kinds button[aria-checked="true"] { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+.script { background: var(--ground); border-radius: 10px; padding: 10px 12px; display: grid; gap: 6px; }
+.script p { margin: 0; font-size: 14px; font-style: italic; }
+
+.tabs { display: grid; grid-template-columns: repeat(3, 1fr); background: var(--ground); border-radius: 10px; padding: 3px; gap: 3px; }
+.tabs button { border: 0; background: transparent; border-radius: 8px; padding: 8px 4px; font-size: 13px; font-weight: 600; color: var(--muted); }
+.tabs button[aria-selected="true"] { background: var(--panel); color: var(--ink); box-shadow: 0 1px 2px rgb(0 0 0 / .12); }
+.tabs button:disabled { opacity: .5; }
+
+.recorder { border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: grid; gap: 12px; background: var(--ground); }
+.recMeta { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.recLive { display: inline-flex; align-items: center; gap: 8px; font: 500 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+.recLive::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: #E5484D; animation: blink 1.2s steps(2, start) infinite; }
+.recIdle { font: 500 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+@keyframes blink { 50% { opacity: .25; } }
+@media (prefers-reduced-motion: reduce) { .recLive::before { animation: none; } }
+.timer { font-size: 13px; color: var(--muted); }
+.timer b { color: var(--ink); font-weight: 500; }
+.wave { width: 100%; height: 56px; display: block; }
+.waveBtn { border: 0; background: none; padding: 0; width: 100%; display: block; }
+.ctrl { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.btnRec { display: inline-flex; gap: 8px; align-items: center; }
+.btnRec::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: #E5484D; }
+.btnStop { display: inline-flex; gap: 8px; align-items: center; }
+.btnStop::before { content: ""; width: 10px; height: 10px; border-radius: 2px; background: currentColor; }
+.btnPlay { display: inline-flex; gap: 8px; align-items: center; }
+
+.pick {
+  border: 1.5px dashed var(--line); border-radius: 12px; padding: 18px 14px; display: grid; gap: 4px;
+  justify-items: center; text-align: center; cursor: pointer; background: var(--panel);
+}
+.pick b { font-size: 14px; }
+.pick input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.pick.dragging { border-color: var(--cobalt); background: var(--cobalt-soft); }
+
+.filePill { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; border: 1px dashed var(--line); border-radius: 10px; padding: 10px 12px; background: var(--panel); }
+.filePill span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.note { font-size: 13px; color: var(--muted); margin: 0; }
+
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.check { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--muted); cursor: pointer; }
+.check input { margin-top: 3px; accent-color: var(--cobalt); }
+.req { font-weight: 600; color: var(--ink); font-size: 12px; }
+.honeypot { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+.send { width: 100%; padding: 15px; font-size: 16px; border-radius: 14px; }
+.sendHint { font-size: 12.5px; color: var(--muted); text-align: center; margin: -12px 0 0; }
+
+.sent { padding: 40px 20px 44px; display: grid; gap: 14px; }
+.sent h1 { font-size: 34px; font-weight: 800; letter-spacing: -.02em; }
+.sent p { margin: 0; color: var(--muted); }
+.sent button { justify-self: start; }
+
+.loading { min-height: 420px; display: grid; place-content: center; justify-items: center; gap: 12px; color: var(--muted); font-size: 14px; }
+.spinner { width: 28px; height: 28px; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--cobalt); animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2.4s; } }
+
+.footer { margin-top: 18px; font-size: 12px; color: var(--muted); text-align: center; max-width: 640px; }
+
+@media (max-width: 440px) {
+  .two, .dest { grid-template-columns: 1fr; }
+  .upcoming { grid-column: auto; }
+  .body { padding: 20px 16px 24px; }
+  .page { padding: 12px 8px 48px; }
+}
