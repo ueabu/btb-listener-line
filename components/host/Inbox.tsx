@@ -51,7 +51,10 @@ export default function Inbox(p: Props) {
 
       <div>
         {p.loading ? (
-          <p className={s.empty}>Loading…</p>
+          <div className={s.loading} role="status">
+            <span className="spinner" aria-hidden="true" />
+            <span>Loading clips…</span>
+          </div>
         ) : shown.length === 0 ? (
           <p className={s.empty}>{p.clips.length ? "Nothing matches this filter." : "No clips for this segment yet."}</p>
         ) : (

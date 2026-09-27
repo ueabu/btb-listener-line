@@ -206,7 +206,7 @@ export default function Board({ hostKey, onLogout }: Props) {
 
           <div className={s.toolbar}>
             <span aria-live="polite">
-              {clips === null ? "Loading clips…" : saving === "pending" || saving === "saving" ? "Saving…" : saving === "saved" ? "All changes saved" : isMock ? "Dev mode · local mock data" : `${clips.length} clips in Drive`}
+              {clips === null ? "Loading…" : saving === "pending" || saving === "saving" ? "Saving…" : saving === "saved" ? "All changes saved" : isMock ? "Dev mode · local mock data" : `${clips.length} clips in Drive`}
             </span>
             <span className={s.toolbarActs}>
               <button type="button" onClick={() => void refresh()}>Refresh</button>
