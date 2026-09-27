@@ -74,7 +74,7 @@ interface Props {
   label?: string;
 }
 
-export default function Waveform({ peaks = [], played = 0, color = "--cobalt", dim = "--line", className, label }: Props) {
+export default function Waveform({ peaks = [], played = 0, color = "--accent", dim = "--line", className, label }: Props) {
   const ref = useRef<HTMLCanvasElement>(null);
   useRedraw(ref, () => ref.current && drawBars(ref.current, peaks, played, color, dim));
   return <canvas ref={ref} className={className} role="img" aria-label={label ?? "Audio waveform"} />;

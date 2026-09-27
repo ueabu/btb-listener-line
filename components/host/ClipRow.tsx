@@ -63,7 +63,7 @@ export default function ClipRow({ clip, episodes, shortlisted, passed, loaded, l
             on.onSeek((e.clientX - r.left) / r.width);
           }}
         >
-          <Waveform className={s.mini} peaks={loaded?.peaks ?? placeholder(clip.id)} played={progress} color="--cobalt" dim="--pass" />
+          <Waveform className={s.mini} peaks={loaded?.peaks ?? placeholder(clip.id)} played={progress} color="--accent" dim="--pass" />
         </button>
         <div className={s.meta}>
           <span>{when.format(new Date(clip.createdAt))}</span>

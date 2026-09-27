@@ -28,7 +28,8 @@
 .drop { border: 1.5px dashed var(--line); border-radius: 12px; padding: 12px 14px; font-size: 13px; color: var(--muted); display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; cursor: pointer; }
 .drop b { color: var(--ink); }
 .drop input { position: absolute; opacity: 0; width: 1px; height: 1px; }
-.drop.dragging { border-color: var(--cobalt); background: var(--cobalt-soft); }
+.drop.dragging { border-color: var(--accent); background: var(--accent-soft); }
+.loading { min-height: 220px; display: grid; place-content: center; justify-items: center; gap: 12px; color: var(--muted); font-size: 14px; border-top: 1px solid var(--line); }
 .empty { color: var(--muted); font-size: 14px; padding: 24px 0; text-align: center; border-top: 1px solid var(--line); }
 
 .clip { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 6px 14px; align-items: center; padding: 12px 0; border-top: 1px solid var(--line); }
@@ -66,7 +67,7 @@
 .slots { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .slot { display: grid; grid-template-columns: auto 50px minmax(0, 1fr) auto; gap: 6px 10px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
 .slot.dragging { opacity: .4; }
-.slot.over { border-color: var(--cobalt); }
+.slot.over { border-color: var(--accent); }
 .grip { width: 10px; height: 16px; background: radial-gradient(circle, var(--pass) 1.3px, transparent 1.6px) 0 0 / 5px 5px; cursor: grab; }
 .tc { font-size: 12px; color: var(--muted); }
 .slotT { min-width: 0; display: grid; }
@@ -90,12 +91,12 @@
 .epField input, .epField textarea { padding: 9px 11px; background: var(--panel); }
 .epFoot { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
 .epActive { display: flex; gap: 6px; align-items: center; font-size: 13px; font-weight: 600; cursor: pointer; }
-.epActive input { accent-color: var(--cobalt); }
+.epActive input { accent-color: var(--accent); }
 .epBtns { display: flex; gap: 6px; }
 .epBtns button { border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 5px 10px; font-size: 12px; font-weight: 600; }
 .epActs { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .status { font-size: 12.5px; color: var(--muted); }
-.notice { background: var(--cobalt-soft); color: var(--cobalt); border-radius: 10px; padding: 10px 14px; font-size: 13.5px; }
+.notice { background: var(--accent-soft); color: var(--accent); border-radius: 10px; padding: 10px 14px; font-size: 13.5px; }
 
 @media (max-width: 900px) {
   .main { grid-template-columns: 1fr; }

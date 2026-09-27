@@ -157,7 +157,7 @@ function Live({
   const levels = useRef<number[]>([]);
   const recording = phase === "recording";
 
-  useRedraw(canvas, () => canvas.current && drawBars(canvas.current, levels.current, 1, "--cobalt", "--line"));
+  useRedraw(canvas, () => canvas.current && drawBars(canvas.current, levels.current, 1, "--accent", "--line"));
 
   useEffect(() => {
     if (!recording) return;
@@ -172,7 +172,7 @@ function Live({
           levels.current.push(r.level());
           const max = Math.floor(canvas.current.clientWidth / 7);
           if (levels.current.length > max) levels.current.splice(0, levels.current.length - max);
-          drawBars(canvas.current, padLeft(levels.current, max), 1, "--cobalt", "--line");
+          drawBars(canvas.current, padLeft(levels.current, max), 1, "--accent", "--line");
           setElapsed(r.elapsed());
         }
       }

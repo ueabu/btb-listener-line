@@ -37,21 +37,39 @@ export default function DestinationPicker({ dest, episodeId, episodes, onChange 
             <span>Pick a topic we&apos;re recording soon and we&apos;ll play it in that episode.</span>
           </button>
         )}
-        {dest === "upcoming" && hasUpcoming && (
-          <div className={s.upcoming} role="radiogroup" aria-label="Upcoming episodes">
-            {episodes!.map((ep) => (
-              <label key={ep.id} className={s.epOpt}>
-                <input type="radio" name="episode" checked={episodeId === ep.id} onChange={() => onChange("upcoming", ep.id)} />
-                <span>
-                  <b>{ep.title}</b>
-                  {ep.description && <span className={s.epDesc}>{ep.description}</span>}
-                  {ep.note && <span className="hint">{ep.note}</span>}
-                </span>
-              </label>
-            ))}
-          </div>
-        )}
+        {dest === "upcoming" && hasUpcoming && <EpisodeDropdown episodes={episodes!} episodeId={episodeId} onPick={(id) => onChange("upcoming", id)} />}
       </div>
     </fieldset>
+  );
+}
+
+interface PickerProps {
+  episodes: Episode[];
+  episodeId: string | null;
+  onPick: (id: string) => void;
+}
+
+/** Titles in a dropdown; the chosen episode's details in a card below. */
+function EpisodeDropdown({ episodes, episodeId, onPick }: PickerProps) {
+  const ep = episodes.find((e) => e.id === episodeId) ?? episodes[0];
+  return (
+    <div className={s.episodePick}>
+      <label className={s.pickLabel} htmlFor="episode">
+        <span className="eyebrow">Recording for</span>
+        <select id="episode" value={ep.id} onChange={(e) => onPick(e.target.value)}>
+          {episodes.map((e) => (
+            <option key={e.id} value={e.id}>
+              {e.title}
+            </option>
+          ))}
+        </select>
+      </label>
+      {(ep.description || ep.note) && (
+        <div className={s.episodeCard} aria-live="polite">
+          {ep.note && <span className={s.tag} style={{ justifySelf: "start" }}>{ep.note}</span>}
+          {ep.description && <p className={s.episodeDesc}>{ep.description}</p>}
+        </div>
+      )}
+    </div>
   );
 }

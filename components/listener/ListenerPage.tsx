@@ -87,7 +87,6 @@ export default function ListenerPage() {
           <span className="wordmark">
             Beyond the <i>Build</i>
           </span>
-          <span className={s.onair}>Listener line</span>
         </header>
 
         {send.phase === "sent" ? (
@@ -101,16 +100,16 @@ export default function ListenerPage() {
           </section>
         ) : episodes === null ? (
           <div className={s.loading} role="status">
-            <span className={s.spinner} aria-hidden="true" />
+            <span className="spinner" aria-hidden="true" />
             <span>Loading…</span>
           </div>
         ) : (
           <form className={s.body} onSubmit={submit} noValidate>
             <div className={s.hero}>
-              <h1>Ask Uma &amp; Ope anything.</h1>
+              <h1>Be part of the show.</h1>
               <p>
-                Record a question, a thought, or something interesting you want to share. We play the best ones in the listener
-                segment of the next episode.
+                We&apos;d love to hear from you. Ask Uma &amp; Ope anything, share a thought, or tell us something interesting. We
+                play the best ones in the listener segment of the next episode.
               </p>
             </div>
 
