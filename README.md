@@ -36,9 +36,19 @@ To use the real backend, follow [`apps-script/SETUP.md`](apps-script/SETUP.md), 
 | `npm run build` | Production build |
 | `npm run lint` | ESLint |
 | `npm test` | Vitest (sample math, rundown timecodes) |
+| `npm run deploy:fly` | Build and deploy to Fly.io |
 | `npm run hash-password -- "pw"` | SHA-256 for `NEXT_PUBLIC_HOST_PASSWORD_HASH` |
 
-## Deploy (Vercel)
+## Deploy (Fly.io)
+Live at <https://btb-listener-line.fly.dev> (app `btb-listener-line`, personal org, region `sjc`).
+
+```bash
+npm run deploy:fly
+```
+
+The deploy script reads `NEXT_PUBLIC_APPS_SCRIPT_URL` and `NEXT_PUBLIC_HOST_PASSWORD_HASH` from `.env.local` and passes them to the Docker build. They're compiled into the browser bundle, so after changing either one you need to redeploy. Fly builds the image remotely, so you don't need Docker locally. The machine stops when idle and starts on the next visit, which adds a second or two to the first load.
+
+## Deploy (Vercel, alternative)
 1. Import the repo in Vercel. The defaults are fine.
 2. Add `NEXT_PUBLIC_APPS_SCRIPT_URL` and `NEXT_PUBLIC_HOST_PASSWORD_HASH`.
 3. Deploy.

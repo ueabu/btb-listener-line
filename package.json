@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint .",
     "test": "vitest run",
-    "hash-password": "node scripts/hash-password.mjs"
+    "hash-password": "node scripts/hash-password.mjs",
+    "deploy:fly": "scripts/fly-deploy.sh"
   },
   "dependencies": {
     "@breezystack/lamejs": "^1.2.7",
