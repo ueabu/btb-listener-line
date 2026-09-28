@@ -1,5 +1,6 @@
 "use client";
 
+import { parseSpeaker } from "@/lib/intro";
 import { KINDS, type Dest, type Kind } from "@/lib/types";
 import s from "./listener.module.css";
 
@@ -11,18 +12,12 @@ interface Props {
   episodeTitle?: string;
 }
 
-/** "Tobi from London" / "Tobi in London" → { who: "Tobi", where: "London" }. */
-export function splitName(name: string): { who: string; where: string } {
-  const [who, where] = name.trim().split(/\s+(?:from|in)\s+/i, 2);
-  return { who: who || "[your name]", where: where?.trim() || "[where you are]" };
-}
-
 export default function KindPicker({ kind, onChange, name, dest, episodeTitle }: Props) {
-  const { who, where } = splitName(name);
+  const { name: who, city, country } = parseSpeaker(name);
   const welcome =
     dest === "lwit"
-      ? "welcome to Last Week in Tech, a series in the Beyond the Build episode"
-      : `welcome to Beyond the Build${episodeTitle ? `, where we're talking about ${episodeTitle.toLowerCase()}` : ""}`;
+      ? "Welcome to Last Week in Tech, a series in the Beyond the Build Podcast"
+      : `Welcome to the Beyond the Build Podcast${episodeTitle ? `, where we're talking about ${episodeTitle.toLowerCase()}` : ""}`;
   return (
     <div className={s.field}>
       <span className={s.label} id="kind-label">What are you sending?</span>
@@ -37,7 +32,7 @@ export default function KindPicker({ kind, onChange, name, dest, episodeTitle }:
         <div className={s.script}>
           <span className="eyebrow">Read this line to open the segment:</span>
           <p>
-            &ldquo;Hello, my name is {who} and I am recording from {where}, and {welcome}.&rdquo;
+            &ldquo;Hello everyone, this is {who} and I am recording from {city} in {country}. {welcome}.&rdquo;
           </p>
         </div>
       )}

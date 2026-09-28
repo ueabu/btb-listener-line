@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, ApiError, isMock } from "@/lib/api";
 import { base64ToBlob, decode } from "@/lib/audio/process";
 import { peaks } from "@/lib/audio/samples";
-import { tc, weekOf } from "@/lib/format";
+import { tc, weekLabel } from "@/lib/format";
 import { buildSlots } from "@/lib/rundown";
 import { emptySegment, LWIT, segmentKey, type BoardState, type Clip, type Episode, type SegmentState } from "@/lib/types";
 import { usePlayer } from "@/components/usePlayer";
@@ -138,9 +138,7 @@ export default function Board({ hostKey, onLogout }: Props) {
   const { slots, total } = buildSlots(segClips, seg);
   const newCount = segClips.filter((c) => !seg.order.includes(c.id) && !seg.passed.includes(c.id)).length;
 
-  // The LWIT week starts at the last "Start new week", or this week if that's never been pressed.
-  const lwitSince = board.segments[LWIT]?.since;
-  const lwitWeek = weekOf(lwitSince ? new Date(lwitSince) : new Date());
+  const lwitWeek = weekLabel(board.segments[LWIT]?.since);
   const title = segKey === LWIT ? "Last Week in Tech" : episodes.find((e) => e.id === segKey)?.title ?? "Episode";
 
   async function playClip(id: string) {

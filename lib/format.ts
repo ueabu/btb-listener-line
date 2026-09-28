@@ -21,7 +21,11 @@ export function mondayOf(d: Date): Date {
   return m;
 }
 
-/** "Week of Sep 21" for the week containing `d`. */
-export function weekOf(d: Date): string {
-  return `Week of ${mondayOf(d).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
+/**
+ * Label for the Last Week in Tech segment. After "Start new week" it's the day the week was
+ * started ("Week of Sep 27"); before that ever happens, the Monday of the current week.
+ */
+export function weekLabel(since: string | undefined, now = new Date(), locale?: string): string {
+  const start = since ? new Date(since) : mondayOf(now);
+  return `Week of ${start.toLocaleDateString(locale, { month: "short", day: "numeric" })}`;
 }
