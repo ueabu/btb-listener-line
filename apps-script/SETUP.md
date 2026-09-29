@@ -18,7 +18,7 @@ In **Project Settings → Script Properties**, add:
 | `FOLDER_ID` | *(Optional.)* The ID of an existing Drive folder, taken from its URL. Leave it empty and the next step creates one. |
 
 ## 3. Run setup once
-In the editor, select the `setup` function and click **Run**, then accept the permissions prompt (Drive + send email). This does three things:
+In the editor, select the `setup` function and click **Run**, then accept the permissions prompt (Drive, send email, and connect to an external service, which is used to open video uploads to Drive). This does three things:
 - creates the `Listener Line` Drive folder (if `FOLDER_ID` was empty), with a `clips/` subfolder
 - creates an empty `episodes.json`
 - logs the folder URL
@@ -43,6 +43,10 @@ Redeploy the site after changing env vars. Next.js bakes `NEXT_PUBLIC_*` values 
 ## Updating the script later
 After editing `Code.gs`, go to **Deploy → Manage deployments**, click the pencil on the existing deployment, set **Version** to *New version*, and click **Deploy**. This keeps the same URL. Creating a *new* deployment instead changes the URL.
 
+If `appsscript.json` gained a permission (version 3 added "connect to an external service" for video uploads), paste the new manifest too, then run `setup` once from the editor and approve the new permission **before** deploying. Otherwise the web app fails when it needs that permission.
+
+`curl -sL "$NEXT_PUBLIC_APPS_SCRIPT_URL"` shows the deployed `"version"`. It should match `VERSION` at the top of `Code.gs`.
+
 ## Changing the password
 1. Update `HOST_KEY` in Script Properties.
 2. Update `NEXT_PUBLIC_HOST_PASSWORD_HASH` in Vercel.
@@ -57,6 +61,11 @@ curl -sL -H 'Content-Type: text/plain' -d '{"action":"list"}' "$NEXT_PUBLIC_APPS
 # {"ok":false,"error":"Wrong password.","code":"unauthorized"}
 ```
 
+## Video uploads
+- Videos go straight from the listener's browser to the `clips/` folder. Only sites in `ALLOWED_ORIGINS` (the Fly site and `http://localhost:3000`) can do this. To allow another site, add a comma-separated `ALLOWED_ORIGINS` Script Property.
+- If someone starts a video upload and never finishes it, a file can be left in `clips/` with no description. The board ignores these, and you can delete them in Drive.
+- **Storage:** videos are large (often 100–500 MB each). A free Google account has 15 GB, so clear out old videos in Drive now and then, or add storage.
+
 ## Limits
-- Anti-spam covers: a hidden honeypot field, at least 3s between opening the page and sending, 2:00 / ~3 MB max, MP3 header check, and at most 20 listener clips per 10 minutes across everyone.
+- Anti-spam covers: a hidden honeypot field, at least 3s between opening the page and sending, 2:00 max, ~3 MB max for audio and 1 GB for video, an MP3 header check for audio, a size and type check for video, and at most 20 listener clips per 10 minutes across everyone.
 - Apps Script quotas on a free Gmail account: roughly 100 emails/day and 6 minutes per call. That's plenty here.

@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { api } from "@/lib/api";
-import { blobToBase64, toMp3 } from "@/lib/audio/process";
+import { toMp3 } from "@/lib/audio/process";
+import { mb } from "@/lib/format";
+import { sendTake, type Take } from "@/lib/send";
 import { LWIT, type Kind } from "@/lib/types";
+import { inspectVideo, isVideoFile } from "@/lib/video";
 import s from "./host.module.css";
 
 interface Props {
@@ -31,32 +33,52 @@ export default function DropZone({ hostKey, segKey, onAdded }: Props) {
     const list = Array.from(files);
     for (const [i, file] of list.entries()) {
       const prefix = list.length > 1 ? `${i + 1}/${list.length} · ` : "";
+      const isVideo = isVideoFile(file);
+      let url: string | null = null;
       try {
-        setStatus(`${prefix}Converting ${file.name}…`);
-        const out = await toMp3(file);
-        setStatus(`${prefix}Uploading ${file.name}…`);
-        await api.submit(
+        let take: Take;
+        if (isVideo) {
+          // Videos are kept as video and go straight to Drive.
+          setStatus(`${prefix}Checking ${file.name}…`);
+          url = URL.createObjectURL(file);
+          take = { kind: "video", file, fileName: file.name, durationSec: await inspectVideo(file, url), url };
+        } else {
+          setStatus(`${prefix}Converting ${file.name}…`);
+          const out = await toMp3(file);
+          take = { kind: "audio", ...out, fileName: file.name, url: "" };
+        }
+        await sendTake(
+          take,
           {
             name: file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").trim() || "Listener",
             kind: guessKind(file.name),
             dest: segKey === LWIT ? "lwit" : "upcoming",
             episodeId: segKey === LWIT ? undefined : segKey,
-            fromVideo: file.type.startsWith("video/"),
-            durationSec: Math.round(out.durationSec * 10) / 10,
             consent: true,
             source: "host",
             elapsedMs: 0,
-            audio: await blobToBase64(out.mp3),
           },
-          hostKey,
+          {
+            key: hostKey,
+            onStage: (st) => st === "finishing" && setStatus(`${prefix}Finishing ${file.name}…`),
+            onProgress: ({ loaded, total }) =>
+              setStatus(
+                isVideo
+                  ? `${prefix}Uploading ${file.name}… ${total ? Math.floor((loaded / total) * 100) : 0}% · ${mb(loaded)} of ${mb(total)}`
+                  : `${prefix}Uploading ${file.name}…`,
+              ),
+          },
         );
       } catch (e) {
         setError(`${file.name}: ${e instanceof Error ? e.message : "failed"}`);
+      } finally {
+        if (url) URL.revokeObjectURL(url);
       }
     }
     setStatus(null);
     onAdded();
   }
+
 
   return (
     <>
@@ -77,7 +99,7 @@ export default function DropZone({ hostKey, segKey, onAdded }: Props) {
         <span aria-live="polite">
           {status ?? (
             <>
-              <b>Drop audio or video files here</b> · video is converted to audio
+              <b>Drop audio or video files here</b> · videos are kept as video
             </>
           )}
         </span>

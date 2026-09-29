@@ -9,7 +9,7 @@
  */
 
 // Bump when Code.gs changes, so `curl <url>` shows which version is deployed.
-var VERSION = 2; // 2: episode descriptions
+var VERSION = 3; // 2: episode descriptions, 3: video uploads
 
 var KINDS = ['question', 'thought', 'intro'];
 var DESTS = ['lwit', 'upcoming'];
@@ -18,6 +18,11 @@ var MAX_SECONDS = 125;
 var MIN_ELAPSED_MS = 3000;
 var RATE_LIMIT = 20; // listener submissions per window, across everyone
 var RATE_WINDOW_S = 600;
+var MAX_VIDEO_BYTES = 1024 * 1024 * 1024; // 1 GB; a 2-minute phone video is usually 100-500 MB
+var VIDEO_TICKET_S = 6 * 60 * 60; // how long an opened video upload stays valid
+// Sites allowed to upload videos straight to Drive (the browser's Origin must match for CORS).
+// Add more with a comma-separated ALLOWED_ORIGINS Script Property.
+var ALLOWED_ORIGINS = ['https://btb-listener-line.fly.dev', 'http://localhost:3000'];
 
 // ---------------------------------------------------------------------------
 // Entry points
@@ -44,6 +49,8 @@ var PUBLIC_ = {
     return readJson_('episodes.json', []).filter(function (ep) { return ep.active; });
   },
   submit: submit_,
+  startVideo: startVideo_,
+  finishVideo: finishVideo_,
 };
 
 var HOST_ = {
@@ -109,12 +116,13 @@ var HOST_ = {
 // ---------------------------------------------------------------------------
 // Submit
 
-function submit_(req) {
-  var s = req.submission || {};
-  var isHost = !!req.key && checkKey_(req.key);
-
+/**
+ * Checks shared by audio and video submissions. Listener submissions also get the bot checks.
+ * Returns the cleaned name, duration and (for upcoming episodes) the episode.
+ */
+function validate_(s, isHost) {
   if (!isHost) {
-    // Bots fill hidden fields and send instantly. Fail quietly-ish either way.
+    // Bots fill hidden fields and send instantly.
     if (s.website) throw fail_('Something looked off. Try again.', 'spam');
     if (!(Number(s.elapsedMs) >= MIN_ELAPSED_MS)) throw fail_('That was quick. Give it another go.', 'spam');
     rateLimit_();
@@ -122,12 +130,10 @@ function submit_(req) {
 
   var name = String(s.name || '').trim().slice(0, 80);
   if (!name) throw fail_('Add a name to credit.', 'bad_request');
-  if (s.consent !== true) throw fail_('Tick the box to say we can play it.', 'bad_request');
+  if (s.consent !== true) throw fail_('Tick the box to say we can use it.', 'bad_request');
   if (KINDS.indexOf(s.kind) < 0 || DESTS.indexOf(s.dest) < 0) throw fail_('Bad request.', 'bad_request');
   var duration = Number(s.durationSec);
   if (!(duration > 0 && duration <= MAX_SECONDS)) throw fail_('Clips can be up to 2 minutes.', 'bad_request');
-  var audio = String(s.audio || '');
-  if (!audio || audio.length > MAX_AUDIO_B64) throw fail_('That clip is too large.', 'bad_request');
 
   var episode = null;
   if (s.dest === 'upcoming') {
@@ -135,7 +141,41 @@ function submit_(req) {
     episode = eps.filter(function (ep) { return ep.id === s.episodeId && (ep.active || isHost); })[0];
     if (!episode) throw fail_("That episode isn't taking clips any more. Pick another one.", 'bad_request');
   }
+  return { name: name, duration: duration, episode: episode };
+}
 
+function buildMeta_(s, v, isHost, now, extra) {
+  var meta = {
+    name: v.name,
+    email: s.email ? String(s.email).trim().slice(0, 120) : undefined,
+    summary: s.summary ? String(s.summary).trim().slice(0, 200) : undefined,
+    kind: s.kind,
+    dest: s.dest,
+    episodeId: v.episode ? v.episode.id : undefined,
+    durationSec: Math.round(v.duration * 10) / 10,
+    source: isHost ? 'host' : 'listener',
+    createdAt: now.toISOString(),
+  };
+  for (var k in extra) meta[k] = extra[k];
+  return meta;
+}
+
+function fileBase_(now, episode, kind, name) {
+  return [
+    Utilities.formatDate(now, Session.getScriptTimeZone(), 'yyyy-MM-dd_HHmm'),
+    episode ? episode.id : 'lwit',
+    kind,
+    name.replace(/[^\w-]+/g, '-').slice(0, 40),
+  ].join('_');
+}
+
+function submit_(req) {
+  var s = req.submission || {};
+  var isHost = !!req.key && checkKey_(req.key);
+  var v = validate_(s, isHost);
+
+  var audio = String(s.audio || '');
+  if (!audio || audio.length > MAX_AUDIO_B64) throw fail_('That clip is too large.', 'bad_request');
   var bytes;
   try {
     bytes = Utilities.base64Decode(audio);
@@ -148,31 +188,101 @@ function submit_(req) {
   }
 
   var now = new Date();
-  var meta = {
-    name: name,
-    email: s.email ? String(s.email).trim().slice(0, 120) : undefined,
-    summary: s.summary ? String(s.summary).trim().slice(0, 200) : undefined,
-    kind: s.kind,
-    dest: s.dest,
-    episodeId: episode ? episode.id : undefined,
-    fromVideo: !!s.fromVideo,
-    durationSec: Math.round(duration * 10) / 10,
-    source: isHost ? 'host' : 'listener',
-    createdAt: now.toISOString(),
-  };
-
-  var fileName = [
-    Utilities.formatDate(now, Session.getScriptTimeZone(), 'yyyy-MM-dd_HHmm'),
-    episode ? episode.id : 'lwit',
-    meta.kind,
-    name.replace(/[^\w-]+/g, '-').slice(0, 40),
-  ].join('_') + '.mp3';
-
-  var file = clipsFolder_().createFile(Utilities.newBlob(bytes, 'audio/mpeg', fileName));
+  var meta = buildMeta_(s, v, isHost, now, { media: 'audio', fromVideo: !!s.fromVideo });
+  var file = clipsFolder_().createFile(Utilities.newBlob(bytes, 'audio/mpeg', fileBase_(now, v.episode, meta.kind, v.name) + '.mp3'));
   file.setDescription(JSON.stringify(meta));
 
-  if (!isHost) notify_(meta, episode, file);
+  if (!isHost) notify_(meta, v.episode, file);
   return { id: file.getId() };
+}
+
+/**
+ * Step 1 of a video upload. Videos are too big to pass through this script, so after the usual
+ * checks it opens a Drive resumable upload into clips/ and hands the browser the upload URL.
+ * The browser PUTs the file straight to Drive, then calls finishVideo with the ticket.
+ */
+function startVideo_(req) {
+  var s = req.submission || {};
+  var isHost = !!req.key && checkKey_(req.key);
+  var v = validate_(s, isHost);
+
+  var mime = String(s.mimeType || '');
+  if (!/^video\/[\w.+-]+$/.test(mime)) throw fail_("That doesn't look like a video.", 'bad_request');
+  var size = Number(s.size);
+  if (!(size > 0 && size <= MAX_VIDEO_BYTES)) throw fail_('Videos can be up to 1 GB.', 'bad_request');
+  var origin = String(s.origin || '');
+  if (allowedOrigins_().indexOf(origin) < 0) throw fail_('Uploads from this site are not allowed.', 'bad_origin');
+
+  var now = new Date();
+  var meta = buildMeta_(s, v, isHost, now, { media: 'video', mimeType: mime });
+  var name = fileBase_(now, v.episode, meta.kind, v.name) + videoExt_(mime, s.fileName);
+
+  var res = UrlFetchApp.fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable', {
+    method: 'post',
+    contentType: 'application/json; charset=UTF-8',
+    headers: {
+      Authorization: 'Bearer ' + ScriptApp.getOAuthToken(),
+      // Drive answers the browser's upload with CORS headers for this origin.
+      Origin: origin,
+      'X-Upload-Content-Type': mime,
+      // Drive rejects an upload of any other size.
+      'X-Upload-Content-Length': String(size),
+    },
+    payload: JSON.stringify({ name: name, parents: [clipsFolder_().getId()], mimeType: mime }),
+    muteHttpExceptions: true,
+  });
+  var headers = res.getAllHeaders();
+  var uploadUrl = headers.Location || headers.location;
+  if (res.getResponseCode() !== 200 || !uploadUrl) {
+    console.error('resumable session failed: ' + res.getResponseCode() + ' ' + res.getContentText());
+    throw fail_("Couldn't start the upload. Try again in a minute.", 'server');
+  }
+
+  var ticket = Utilities.getUuid();
+  CacheService.getScriptCache().put(
+    'vt_' + ticket,
+    JSON.stringify({ meta: meta, size: size, isHost: isHost, episode: v.episode ? { id: v.episode.id, title: v.episode.title } : null }),
+    VIDEO_TICKET_S
+  );
+  return { ticket: ticket, uploadUrl: uploadUrl };
+}
+
+/** Step 2: the browser finished uploading. Check the file matches the ticket, then label it. */
+function finishVideo_(req) {
+  var cache = CacheService.getScriptCache();
+  var raw = cache.get('vt_' + String(req.ticket || ''));
+  if (!raw) throw fail_('That upload expired. Please send it again.', 'expired');
+  var t = JSON.parse(raw);
+
+  var file;
+  try {
+    file = DriveApp.getFileById(String(req.fileId || ''));
+  } catch (e) {
+    throw fail_("We couldn't find the uploaded video. Please send it again.", 'not_found');
+  }
+  if (!inFolder_(file, clipsFolder_()) || file.getSize() !== t.size || !/^video\//.test(file.getMimeType())) {
+    throw fail_("The uploaded video didn't match. Please send it again.", 'bad_request');
+  }
+  if (file.getDescription()) return { id: file.getId() }; // already finished (e.g. a retried request)
+
+  file.setDescription(JSON.stringify(t.meta));
+  cache.remove('vt_' + req.ticket);
+  if (!t.isHost) notify_(t.meta, t.episode, file);
+  return { id: file.getId() };
+}
+
+function videoExt_(mime, fileName) {
+  var m = String(fileName || '').match(/\.(mp4|mov|m4v|webm|3gp|mkv)$/i);
+  if (m) return '.' + m[1].toLowerCase();
+  return { 'video/quicktime': '.mov', 'video/webm': '.webm', 'video/x-m4v': '.m4v', 'video/3gpp': '.3gp' }[mime] || '.mp4';
+}
+
+function allowedOrigins_() {
+  var extra = String(prop_('ALLOWED_ORIGINS', false) || '')
+    .split(',')
+    .map(function (o) { return o.trim().replace(/\/$/, ''); })
+    .filter(String);
+  return ALLOWED_ORIGINS.concat(extra);
 }
 
 function notify_(meta, episode, file) {
@@ -181,16 +291,16 @@ function notify_(meta, episode, file) {
   try {
     var where = episode ? episode.title : 'Last Week in Tech';
     var lines = [
-      meta.name + ' sent a ' + meta.kind + ' for ' + where + ' (' + Math.round(meta.durationSec) + 's' + (meta.fromVideo ? ', from video' : '') + ').',
+      meta.name + ' sent a ' + (meta.media === 'video' ? 'video ' : '') + meta.kind + ' for ' + where + ' (' + Math.round(meta.durationSec) + 's).',
       '',
       meta.summary ? '"' + meta.summary + '"' : '(no summary)',
       meta.email ? 'Email: ' + meta.email : '',
       '',
-      'Listen: ' + file.getUrl(),
+      (meta.media === 'video' ? 'Watch: ' : 'Listen: ') + file.getUrl(),
     ];
     MailApp.sendEmail({
       to: to,
-      subject: 'Listener Line: new ' + meta.kind + ' from ' + meta.name,
+      subject: 'Listener Line: new ' + (meta.media === 'video' ? 'video ' : '') + meta.kind + ' from ' + meta.name,
       body: lines.join('\n'),
       replyTo: meta.email || undefined,
     });
