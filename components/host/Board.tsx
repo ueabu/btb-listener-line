@@ -36,6 +36,8 @@ export default function Board({ hostKey, onLogout }: Props) {
   const [loaded, setLoaded] = useState<Record<string, Loaded>>({});
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [currentId, setCurrentId] = useState<string | null>(null);
+  /** The video clip whose inline player is open (one at a time). */
+  const [videoId, setVideoId] = useState<string | null>(null);
 
   // Saves run one at a time. `base` is the server's updatedAt for the board we last saw; a save
   // made from an older base is a real conflict (another tab or person). Edits made while a save
@@ -142,6 +144,13 @@ export default function Board({ hostKey, onLogout }: Props) {
   const title = segKey === LWIT ? "Last Week in Tech" : episodes.find((e) => e.id === segKey)?.title ?? "Episode";
 
   async function playClip(id: string) {
+    // Videos play in Drive's player inside the row; nothing to download first.
+    if (clips?.find((c) => c.id === id)?.media === "video") {
+      setCurrentId(null);
+      setVideoId((v) => (v === id ? null : id));
+      return;
+    }
+    setVideoId(null);
     if (currentId === id && loaded[id]) return player.toggle();
     if (!loaded[id]) {
       setLoadingId(id);
@@ -224,6 +233,7 @@ export default function Board({ hostKey, onLogout }: Props) {
               loaded={loaded}
               loadingId={loadingId}
               currentId={currentId}
+              videoId={videoId}
               playing={player.playing}
               progress={player.progress}
               onPlay={playClip}

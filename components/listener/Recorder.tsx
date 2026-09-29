@@ -5,13 +5,13 @@ import { drawBars, useRedraw } from "@/components/Waveform";
 import Waveform from "@/components/Waveform";
 import { usePlayer } from "@/components/usePlayer";
 import { startRecording, type Recording } from "@/lib/audio/record";
-import { toMp3, type Processed } from "@/lib/audio/process";
+import { toMp3 } from "@/lib/audio/process";
 import { dur, kb, tc } from "@/lib/format";
+import type { AudioTake, Take, VideoTake } from "@/lib/send";
 import { MAX_SECONDS } from "@/lib/types";
+import { inspectVideo } from "@/lib/video";
 import s from "./listener.module.css";
 
-/** `url` is an object URL for the MP3; whoever drops the take revokes it. */
-export type Take = Processed & { fromVideo: boolean; fileName?: string; url: string };
 type Tab = "record" | "audio" | "video";
 type Phase = "idle" | "recording" | "processing" | "ready";
 
@@ -37,16 +37,32 @@ export default function Recorder({ take, onTake, disabled }: Props) {
 
   useEffect(() => () => rec.current?.cancel(), []);
 
-  async function process(blob: Blob, fromVideo: boolean, fileName?: string) {
+  async function processAudio(blob: Blob, fileName?: string) {
     setPhase("processing");
     setProgress(0);
     setError(null);
     try {
       const out = await toMp3(blob, setProgress);
-      onTake({ ...out, fromVideo, fileName, url: URL.createObjectURL(out.mp3) });
+      onTake({ kind: "audio", ...out, fileName, url: URL.createObjectURL(out.mp3) });
       setPhase("ready");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong with that audio.");
+      setPhase("idle");
+    }
+  }
+
+  /** Videos are sent as they are, so we only check the length and size here. */
+  async function processVideo(file: File) {
+    setPhase("processing");
+    setError(null);
+    const url = URL.createObjectURL(file);
+    try {
+      const durationSec = await inspectVideo(file, url);
+      onTake({ kind: "video", file, fileName: file.name, durationSec, url });
+      setPhase("ready");
+    } catch (e) {
+      URL.revokeObjectURL(url);
+      setError(e instanceof Error ? e.message : "Something went wrong with that video.");
       setPhase("idle");
     }
   }
@@ -67,7 +83,7 @@ export default function Recorder({ take, onTake, disabled }: Props) {
     if (!r) return;
     rec.current = null;
     const blob = await r.stop();
-    await process(blob, false);
+    await processAudio(blob);
   }
 
   function reset() {
@@ -83,8 +99,8 @@ export default function Recorder({ take, onTake, disabled }: Props) {
   function pickFile(file: File | undefined, kind: "audio" | "video") {
     if (!file) return;
     setFileLabel(file.name);
-    const isVideo = kind === "video" || file.type.startsWith("video/");
-    void process(file, isVideo, file.name);
+    if (kind === "video") void processVideo(file);
+    else void processAudio(file, file.name);
   }
 
   const busy = phase === "recording" || phase === "processing";
@@ -111,7 +127,7 @@ export default function Recorder({ take, onTake, disabled }: Props) {
       </div>
 
       {phase === "ready" && take ? (
-        <Ready take={take} onReset={reset} />
+        take.kind === "video" ? <VideoReady take={take} onReset={reset} /> : <Ready take={take} onReset={reset} />
       ) : phase === "processing" ? (
         <div className={s.recorder} aria-live="polite">
           {fileLabel && (
@@ -119,12 +135,18 @@ export default function Recorder({ take, onTake, disabled }: Props) {
               <span>{fileLabel}</span>
             </div>
           )}
-          <p className={s.note}>
-            {tab === "video" ? "Pulling the audio out of your video…" : "Getting your audio ready…"}
-          </p>
-          <div className="progress" role="progressbar" aria-valuenow={Math.round(progress * 100)} aria-valuemin={0} aria-valuemax={100}>
-            <i style={{ width: `${Math.round(progress * 100)}%` }} />
-          </div>
+          {tab === "video" ? (
+            <p className={`${s.note} ${s.checking}`}>
+              <span className="spinner" aria-hidden="true" /> Checking your video…
+            </p>
+          ) : (
+            <>
+              <p className={s.note}>Getting your audio ready…</p>
+              <div className="progress" role="progressbar" aria-valuenow={Math.round(progress * 100)} aria-valuemin={0} aria-valuemax={100}>
+                <i style={{ width: `${Math.round(progress * 100)}%` }} />
+              </div>
+            </>
+          )}
         </div>
       ) : tab === "record" ? (
         <Live phase={phase} rec={rec} elapsed={elapsed} setElapsed={setElapsed} onStart={start} onStop={stop} onReset={reset} />
@@ -135,7 +157,7 @@ export default function Recorder({ take, onTake, disabled }: Props) {
       {error && <div className="error" role="alert">{error}</div>}
       {tab === "video" && phase !== "ready" && (
         <p className={s.note}>
-          Sending a video? We only keep the sound. The audio is pulled out on your device before upload, so the video itself is never sent.
+          Want to be seen too? Send a video, up to {dur(MAX_SECONDS)} long. We may use it on the podcast, YouTube, and in social clips.
         </p>
       )}
     </fieldset>
@@ -228,13 +250,13 @@ function FilePick({ kind, onFile }: { kind: "audio" | "video"; onFile: (f: File 
       <input type="file" accept={ACCEPT[kind]} onChange={(e) => onFile(e.target.files?.[0])} />
       <b>Choose {kind === "audio" ? "an audio" : "a video"} file</b>
       <span className="hint">
-        {kind === "audio" ? "mp3, m4a, wav and most voice memos" : "mp4, mov or webm"} · first {tc(MAX_SECONDS)} is used
+        {kind === "audio" ? `mp3, m4a, wav and most voice memos · first ${tc(MAX_SECONDS)} is used` : `mp4, mov or webm · up to ${dur(MAX_SECONDS)}`}
       </span>
     </label>
   );
 }
 
-function Ready({ take, onReset }: { take: Take; onReset: () => void }) {
+function Ready({ take, onReset }: { take: AudioTake; onReset: () => void }) {
   const player = usePlayer(take.url);
 
   return (
@@ -268,6 +290,24 @@ function Ready({ take, onReset }: { take: Take; onReset: () => void }) {
           {player.playing ? "Pause" : "Play"}
         </button>
         <button type="button" className="btn btn-ghost" onClick={onReset}>Redo</button>
+      </div>
+    </div>
+  );
+}
+
+function VideoReady({ take, onReset }: { take: VideoTake; onReset: () => void }) {
+  return (
+    <div className={s.recorder}>
+      <div className={s.filePill}>
+        <span>{take.fileName}</span>
+        <span className="mono">
+          {dur(take.durationSec)} · {kb(take.file.size)}
+        </span>
+      </div>
+      <video className={s.videoPreview} src={take.url} controls playsInline preload="metadata" aria-label="Your video" />
+      <p className={s.note}>Watch it back before you send. You can pick a different video anytime.</p>
+      <div className={s.ctrl}>
+        <button type="button" className="btn btn-ghost" onClick={onReset}>Choose another</button>
       </div>
     </div>
   );

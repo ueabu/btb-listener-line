@@ -1,17 +1,22 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { api, isMock } from "@/lib/api";
-import { blobToBase64 } from "@/lib/audio/process";
+import { api, ApiError, isMock, type UploadProgress as Progress } from "@/lib/api";
+import { sendTake, type Stage, type Take } from "@/lib/send";
 import type { Dest, Episode, Kind } from "@/lib/types";
 import DestinationPicker from "./DestinationPicker";
 import KindPicker from "./KindPicker";
-import Recorder, { type Take } from "./Recorder";
+import Recorder from "./Recorder";
+import UploadProgress from "./UploadProgress";
 import s from "./listener.module.css";
 
 const EPISODES_TIMEOUT_MS = 8000;
 
-type SendState = { phase: "idle" } | { phase: "sending" } | { phase: "sent"; name: string } | { phase: "error"; message: string };
+type SendState =
+  | { phase: "idle" }
+  | { phase: "sending"; stage: Stage; progress: Progress | null; uploadStart: number | null }
+  | { phase: "failed"; stage: Stage; progress: Progress | null; message: string }
+  | { phase: "sent"; name: string; video: boolean };
 
 export default function ListenerPage() {
   const [episodes, setEpisodes] = useState<Episode[] | null>(null);
@@ -26,6 +31,7 @@ export default function ListenerPage() {
   const [website, setWebsite] = useState("");
   const [send, setSend] = useState<SendState>({ phase: "idle" });
   const startedAt = useRef(0);
+  const abort = useRef<AbortController | null>(null);
 
   useEffect(() => {
     startedAt.current = Date.now();
@@ -43,32 +49,64 @@ export default function ListenerPage() {
   }, []);
 
   const episode = episodes?.find((e) => e.id === episodeId);
-  const missing = !take ? "Record or add a clip first." : !name.trim() ? "Add a name to credit." : !consent ? "Tick the box to say we can play it." : null;
+  const missing = !take ? "Record or add a clip first." : !name.trim() ? "Add a name to credit." : !consent ? "Tick the box to say we can use it." : null;
   const sending = send.phase === "sending";
+  const busy = sending || send.phase === "failed";
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
+  // Leaving mid-upload would lose the video, so ask first.
+  useEffect(() => {
+    if (!sending) return;
+    const warn = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "Your video is still uploading. Leave anyway?";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [sending]);
+
+  async function submit(e?: React.FormEvent) {
+    e?.preventDefault();
     if (missing || !take || sending) return;
-    setSend({ phase: "sending" });
+    const controller = new AbortController();
+    abort.current = controller;
+    let stage: Stage = "checking";
+    let progress: Progress | null = null;
+    setSend({ phase: "sending", stage, progress, uploadStart: null });
     try {
-      await api.submit({
-        name: name.trim(),
-        email: email.trim() || undefined,
-        summary: summary.trim() || undefined,
-        kind,
-        dest,
-        episodeId: dest === "upcoming" ? episodeId ?? undefined : undefined,
-        fromVideo: take.fromVideo,
-        durationSec: Math.round(take.durationSec * 10) / 10,
-        consent,
-        source: "listener",
-        elapsedMs: Date.now() - startedAt.current,
-        website,
-        audio: await blobToBase64(take.mp3),
-      });
-      setSend({ phase: "sent", name: name.trim().split(/\s+/)[0] });
+      await sendTake(
+        take,
+        {
+          name: name.trim(),
+          email: email.trim() || undefined,
+          summary: summary.trim() || undefined,
+          kind,
+          dest,
+          episodeId: dest === "upcoming" ? episodeId ?? undefined : undefined,
+          consent,
+          source: "listener",
+          elapsedMs: Date.now() - startedAt.current,
+          website,
+        },
+        {
+          signal: controller.signal,
+          onStage: (st) => {
+            stage = st;
+            setSend((prev) =>
+              prev.phase === "sending" ? { ...prev, stage: st, uploadStart: st === "uploading" ? Date.now() : prev.uploadStart } : prev,
+            );
+          },
+          onProgress: (p) => {
+            progress = p;
+            setSend((prev) => (prev.phase === "sending" ? { ...prev, progress: p } : prev));
+          },
+        },
+      );
+      setSend({ phase: "sent", name: name.trim().split(/\s+/)[0], video: take.kind === "video" });
     } catch (err) {
-      setSend({ phase: "error", message: err instanceof Error ? err.message : "Something went wrong. Try again." });
+      if (err instanceof ApiError && err.code === "aborted") return setSend({ phase: "idle" });
+      setSend({ phase: "failed", stage, progress, message: err instanceof Error ? err.message : "Something went wrong. Try again." });
+    } finally {
+      abort.current = null;
     }
   }
 
@@ -93,6 +131,7 @@ export default function ListenerPage() {
           <section className={s.sent} aria-live="polite">
             <span className="eyebrow">Sent</span>
             <h1>Got it, {send.name}.</h1>
+            <p className={s.sentLead}>{send.video ? "Your video is uploaded." : "Your clip is in."}</p>
             <p>
               We go through clips before each recording. If yours makes the listener segment, you&apos;ll hear it in the episode.
             </p>
@@ -108,67 +147,83 @@ export default function ListenerPage() {
             <div className={s.hero}>
               <h1>Be part of the show.</h1>
               <p>
-                We&apos;d love to hear from you. Ask Uma &amp; Ope anything, share a thought, or tell us something interesting. We
-                play the best ones in the listener segment of the next episode.
+                We&apos;d love to hear from you. Ask Uma &amp; Ope anything, share a thought, or tell us something interesting, as a
+                voice note or a video. We play the best ones in the listener segment of the next episode.
               </p>
             </div>
 
-            <DestinationPicker
-              dest={dest}
-              episodeId={episodeId}
-              episodes={episodes}
-              onChange={(d, id) => {
-                setDest(d);
-                setEpisodeId(id);
-              }}
-            />
+            <fieldset className={s.formFields} disabled={busy}>
+              <DestinationPicker
+                dest={dest}
+                episodeId={episodeId}
+                episodes={episodes}
+                onChange={(d, id) => {
+                  setDest(d);
+                  setEpisodeId(id);
+                }}
+              />
 
-            <KindPicker kind={kind} onChange={setKind} name={name} dest={dest} episodeTitle={episode?.title} />
+              <KindPicker kind={kind} onChange={setKind} name={name} dest={dest} episodeTitle={episode?.title} />
 
-            <Recorder take={take} onTake={setTake} disabled={sending} />
+              <Recorder take={take} onTake={setTake} disabled={busy} />
 
-            <div className={s.two}>
-              <div className={s.field}>
-                <label className={s.label} htmlFor="nm">
-                  Name to credit <span className="hint">(required)</span>
-                </label>
-                <input id="nm" type="text" required aria-required="true" autoComplete="name" placeholder="Tobi from London" value={name} maxLength={80} onChange={(e) => setName(e.target.value)} />
+              <div className={s.two}>
+                <div className={s.field}>
+                  <label className={s.label} htmlFor="nm">
+                    Name to credit <span className="hint">(required)</span>
+                  </label>
+                  <input id="nm" type="text" required aria-required="true" autoComplete="name" placeholder="Tobi from London" value={name} maxLength={80} onChange={(e) => setName(e.target.value)} />
+                </div>
+                <div className={s.field}>
+                  <label className={s.label} htmlFor="em">
+                    Email <span className="hint">(optional)</span>
+                  </label>
+                  <input id="em" type="email" autoComplete="email" placeholder="myemail@gmail.com" value={email} maxLength={120} onChange={(e) => setEmail(e.target.value)} />
+                </div>
               </div>
+
               <div className={s.field}>
-                <label className={s.label} htmlFor="em">
-                  Email <span className="hint">(optional)</span>
+                <label className={s.label} htmlFor="sm">
+                  In a sentence, what&apos;s it about? <span className="hint">(optional)</span>
                 </label>
-                <input id="em" type="email" autoComplete="email" placeholder="myemail@gmail.com" value={email} maxLength={120} onChange={(e) => setEmail(e.target.value)} />
+                <input id="sm" type="text" placeholder="e.g. How do you set token budgets per team?" value={summary} maxLength={200} onChange={(e) => setSummary(e.target.value)} />
               </div>
-            </div>
 
-            <div className={s.field}>
-              <label className={s.label} htmlFor="sm">
-                In a sentence, what&apos;s it about? <span className="hint">(optional)</span>
+              <div className={s.honeypot} aria-hidden="true">
+                <label>
+                  Website
+                  <input type="text" tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} />
+                </label>
+              </div>
+
+              <label className={s.check}>
+                <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
+                <span>
+                  Beyond the Build can use my recording or video on the podcast, YouTube, and social media clips.{" "}
+                  <b className={s.req}>Required</b>
+                </span>
               </label>
-              <input id="sm" type="text" placeholder="e.g. How do you set token budgets per team?" value={summary} maxLength={200} onChange={(e) => setSummary(e.target.value)} />
-            </div>
+            </fieldset>
 
-            <div className={s.honeypot} aria-hidden="true">
-              <label>
-                Website
-                <input type="text" tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} />
-              </label>
-            </div>
-
-            <label className={s.check}>
-              <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
-              <span>
-                Beyond the Build can play my recording on the podcast and in clips. <b className={s.req}>Required</b>
-              </span>
-            </label>
-
-            {send.phase === "error" && <div className="error" role="alert">{send.message}</div>}
-
-            <button type="submit" className={`btn btn-primary ${s.send}`} disabled={!!missing || sending}>
-              {sending ? "Sending…" : "Send to the show"}
-            </button>
-            {missing && !sending && <p className={s.sendHint}>{missing}</p>}
+            {send.phase === "sending" || send.phase === "failed" ? (
+              <UploadProgress
+                video={take?.kind === "video"}
+                stage={send.stage}
+                progress={send.progress}
+                uploadStart={send.phase === "sending" ? send.uploadStart : null}
+                error={send.phase === "failed" ? send.message : undefined}
+                onCancel={() => abort.current?.abort()}
+                onRetry={() => void submit()}
+                onBack={() => setSend({ phase: "idle" })}
+              />
+            ) : (
+              <>
+                <button type="submit" className={`btn btn-primary ${s.send}`} disabled={!!missing}>
+                  Send to the show
+                </button>
+                {missing && <p className={s.sendHint}>{missing}</p>}
+              </>
+            )}
           </form>
         )}
       </div>

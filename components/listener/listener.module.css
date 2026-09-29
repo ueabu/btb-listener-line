@@ -72,6 +72,9 @@ legend.label { margin-bottom: 8px; }
 .filePill { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; border: 1px dashed var(--line); border-radius: 10px; padding: 10px 12px; background: var(--panel); }
 .filePill span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .note { font-size: 13px; color: var(--muted); margin: 0; }
+.checking { display: flex; align-items: center; gap: 10px; }
+.checking :global(.spinner) { width: 18px; height: 18px; border-width: 2px; }
+.videoPreview { width: 100%; max-height: 360px; border-radius: 10px; background: #000; display: block; }
 
 .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .check { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--muted); cursor: pointer; }
@@ -96,3 +99,22 @@ legend.label { margin-bottom: 8px; }
   .body { padding: 20px 16px 24px; }
   .page { padding: 12px 8px 48px; }
 }
+
+/* Sending / uploading */
+.upload { border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: grid; gap: 12px; background: var(--ground); }
+.steps { list-style: none; margin: 0; padding: 0; display: flex; gap: 6px 14px; flex-wrap: wrap; font-size: 13px; font-weight: 600; color: var(--muted); }
+.steps li { display: inline-flex; align-items: center; gap: 6px; }
+.stepDot { width: 20px; height: 20px; border-radius: 50%; display: inline-grid; place-items: center; font: 600 11px/1 var(--mono); border: 1.5px solid var(--line); background: var(--panel); }
+.step_done { color: var(--ink); }
+.step_done .stepDot { background: var(--brand); border-color: var(--brand); color: var(--on-brand); }
+.step_current { color: var(--ink); }
+.step_current .stepDot { border-color: var(--accent); color: var(--accent); }
+.step_failed { color: var(--danger); }
+.step_failed .stepDot { border-color: var(--danger); background: var(--danger-soft); color: var(--danger); }
+.bar { height: 10px; border-radius: 5px; background: var(--panel); border: 1px solid var(--line); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--brand); transition: width .25s; }
+.uploadFailed .bar i { background: var(--danger); }
+.barMeta { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); }
+.uploadError { margin: 0; font-size: 13.5px; color: var(--danger); }
+.formFields { border: 0; padding: 0; margin: 0; min-width: 0; display: grid; gap: 22px; }
+.sentLead { font-weight: 600; color: var(--ink) !important; }

@@ -19,22 +19,36 @@ export interface Episode {
   active: boolean;
 }
 
-/** What the listener page sends. Audio is base64 MP3. */
-export interface Submission {
+/** Details sent with every clip, audio or video. */
+export interface SubmissionMeta {
   name: string;
   email?: string;
   summary?: string;
   kind: Kind;
   dest: Dest;
   episodeId?: string;
-  fromVideo: boolean;
   durationSec: number;
   consent: boolean;
   source: "listener" | "host";
   /** How long the form was open before sending, for the bot check. */
   elapsedMs: number;
   website?: string; // honeypot, must stay empty
+}
+
+/** An audio clip: a base64 MP3 small enough to go through the Apps Script. */
+export interface Submission extends SubmissionMeta {
+  /** Older clips were MP3s pulled out of a video; new ones never are. */
+  fromVideo: boolean;
   audio: string;
+}
+
+/** A video clip: only its details go to the Apps Script; the file goes straight to Drive. */
+export interface VideoSubmission extends SubmissionMeta {
+  mimeType: string;
+  size: number;
+  fileName: string;
+  /** The page's origin, so Drive allows the browser's upload (CORS). */
+  origin: string;
 }
 
 /** A stored clip, as returned by `list`. */
@@ -46,7 +60,11 @@ export interface Clip {
   kind: Kind;
   dest: Dest;
   episodeId?: string;
-  fromVideo: boolean;
+  /** Missing on clips from before video uploads; treat as audio. */
+  media?: "audio" | "video";
+  mimeType?: string;
+  /** Audio pulled out of a video (older clips only). */
+  fromVideo?: boolean;
   durationSec: number;
   source: "listener" | "host";
   createdAt: string;

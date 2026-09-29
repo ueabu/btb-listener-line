@@ -19,6 +19,7 @@ interface Props {
   loaded: Record<string, Loaded>;
   loadingId: string | null;
   currentId: string | null;
+  videoId: string | null;
   playing: boolean;
   progress: number;
   onPlay: (id: string) => void;
@@ -67,6 +68,7 @@ export default function Inbox(p: Props) {
               passed={p.seg.passed.includes(c.id)}
               loaded={p.loaded[c.id]}
               loading={p.loadingId === c.id}
+              videoOpen={p.videoId === c.id}
               playing={p.currentId === c.id && p.playing}
               progress={p.currentId === c.id ? p.progress : 0}
               onPlay={() => p.onPlay(c.id)}

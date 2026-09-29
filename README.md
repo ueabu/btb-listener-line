@@ -2,8 +2,8 @@
 
 Listener Line for **Beyond the Build**: a public page where listeners send a voice or video clip, and a private board where Uma & Ope review clips and build the listener segment.
 
-- `/`: the listener page. Pick where the clip goes (Last Week in Tech or an upcoming episode) and whether it's a question, a thought, or an intro. Then record, or upload an audio or video file. The browser converts everything to a mono MP3 capped at 2:00. Video never leaves the device; only its audio is sent.
-- `/host`: the password-gated host board. Play, shortlist, or pass on clips, order the segment rundown with timecodes, copy it for show notes, drop in files by hand, and manage upcoming episodes.
+- `/`: the listener page. Pick where the clip goes (Last Week in Tech or an upcoming episode) and whether it's a question, a thought, or an intro. Then record audio, upload an audio file, or upload a video. Recordings and audio files are converted in the browser to a mono MP3 capped at 2:00. Videos are sent as they are (up to 2:00 and 1 GB), uploaded straight to Drive with a progress bar.
+- `/host`: the password-gated host board. Play audio clips or watch video clips inline, shortlist, or pass on them, order the segment rundown with timecodes, copy it for show notes, drop in files by hand, and manage upcoming episodes.
 
 Design reference: [`design/listener-line-design.html`](design/listener-line-design.html).
 
@@ -11,11 +11,11 @@ Design reference: [`design/listener-line-design.html`](design/listener-line-desi
 
 ```
 Next.js (Vercel, client-only) ──POST text/plain──▶ Apps Script web app ──▶ Google Drive folder
-                                                                            clips/*.mp3 (metadata in description)
+                                                                            clips/*.mp3, *.mp4, *.mov (metadata in description)
                                                                             episodes.json, board.json
 ```
 
-There are no Next.js API routes. Recording, video-to-audio extraction, and MP3 encoding (lamejs in a Web Worker) all run in the browser. The Apps Script in [`apps-script/`](apps-script) runs as the host's Google account. It writes to Drive, emails on new clips, and checks the host password on every host call.
+There are no Next.js API routes. Recording and MP3 encoding (lamejs in a Web Worker) run in the browser. Audio clips are small enough to go through the Apps Script. Videos are too big for that, so the script checks the submission and opens a one-off Drive upload link (`startVideo`), the browser uploads the file straight to Drive, and the script then labels it (`finishVideo`). The Apps Script in [`apps-script/`](apps-script) runs as the host's Google account. It writes to Drive, emails on new clips, and checks the host password on every host call.
 
 ## Run locally
 

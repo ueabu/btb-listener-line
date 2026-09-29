@@ -56,7 +56,7 @@ function encode(samples: Float32Array, onProgress?: (p: number) => void): Promis
 }
 
 /**
- * Any audio or video blob → mono MP3 capped at MAX_SECONDS.
+ * A recording or audio file → mono MP3 capped at MAX_SECONDS. (Videos are sent as they are; see lib/video.ts.)
  * Progress runs 0..1: decoding takes the first 30%, encoding the rest.
  */
 export async function toMp3(blob: Blob, onProgress?: (p: number) => void): Promise<Processed> {
