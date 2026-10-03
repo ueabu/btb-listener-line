@@ -147,8 +147,9 @@ export default function ListenerPage() {
             <div className={s.hero}>
               <h1>Be part of the show.</h1>
               <p>
-                We&apos;d love to hear from you. Ask Uma &amp; Ope anything, share a thought, or tell us something interesting, as a
-                voice note or a video. We play the best ones in the listener segment of the next episode.
+                Send us a question, hot take, story, or something interesting you think belongs on the show. You can even
+                record the intro for an upcoming LWIT episode. Send it as a voice note or video, and we play the best ones in
+                the listener segment of the next episode.
               </p>
             </div>
 
